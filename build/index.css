@@ -1,0 +1,46 @@
+/*!*******************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./src/admin.css ***!
+  \*******************************************************************************************************************************************************************/
+.sitemeta-app {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.sitemeta-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+
+.sitemeta-table th,
+.sitemeta-table td {
+  border-bottom: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.sitemeta-table .preview {
+  color: #555;
+  font-size: 12px;
+}
+
+.sitemeta-editor {
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin-top: 12px;
+}
+
+.jsoneditor-wrapper {
+  height: 300px;
+  border: 1px solid #ddd;
+  margin-bottom: 12px;
+}
+
+.sitemeta-actions {
+  margin-top: 12px;
+}
+
+
+/*# sourceMappingURL=index.css.map*/

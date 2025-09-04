@@ -1,0 +1,21 @@
+{
+  "name": "site-meta",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "wp-scripts build",
+    "start": "wp-scripts start"
+  },
+  "dependencies": {
+    "@wordpress/api-fetch": "^7.28.0",
+    "@wordpress/components": "^30.1.0",
+    "@wordpress/dom-ready": "^4.28.0",
+    "@wordpress/element": "^6.28.0",
+    "@wordpress/i18n": "^6.1.0",
+    "jsoneditor": "^10.3.0",
+    "react-modal": "^3.16.3"
+  },
+  "devDependencies": {
+    "@wordpress/scripts": "^30.21.0"
+  }
+}

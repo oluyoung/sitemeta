@@ -1,0 +1,1 @@
+<div class="container"><div id="site-meta-admin-app"></div></div>
