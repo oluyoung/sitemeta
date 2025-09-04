@@ -12,32 +12,31 @@ import {
 } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import { TYPES } from './utils/constants';
-import { JsonListModal } from './JSONListModal';
+import { JsonModal } from './JSONModal';
 import { openMediaLibrary } from './utils/mediapicker';
 
 export function FieldEditor({ field, onChange, onSave, onDelete, saving }) {
-  const [modal, setModal] = useState({ open: false, mode: null, initial: null });
+  const [modal, setModal] = useState({ open: false, initial: null });
 
-  const { field_id = '', type = 'text', content } = field || {};
+  const { field_id = '', type = 'text', content, json_content } = field || {};
 
   // basic validation: id and content required before save
   const isContentEmpty = () => {
     if (type === 'text' || type === 'image') return !content || (typeof content === 'string' && content.trim() === '');
-    if (type === 'json' || type === 'keyvalue') return !content || (Object.keys(content || {}).length === 0);
-    if (type === 'list') return !Array.isArray(content) || content.length === 0;
+    if (type === 'json') return !json_content || (Object.keys(json_content || {}).length === 0);
     if (type === 'gallery') return !Array.isArray(content) || content.length === 0;
     return false;
   };
 
   const canSave = field_id && field_id.trim().length > 0 && !isContentEmpty();
 
-  const openJsonModal = (mode) => {
-    setModal({ open: true, mode, initial: content });
+  const openJsonModal = () => {
+    setModal({ open: true, initial: json_content });
   };
 
   const onModalSave = (val) => {
-    onChange(prev => ({ ...prev, content: val }));
-    setModal({ open: false, mode: null, initial: null });
+    onChange(prev => ({ ...prev, json_content: val }));
+    setModal({ open: false, initial: null });
   };
 
   const onPickImage = async (multiple = false) => {
@@ -70,7 +69,7 @@ export function FieldEditor({ field, onChange, onSave, onDelete, saving }) {
         return (
           <div>
             <Button onClick={() => openJsonModal('json')}>{ __('Edit JSON', 'site-meta') }</Button>
-            <div style={{ marginTop: 8, fontSize: 13 }}>{ content ? '[JSON present]' : __('No JSON set', 'site-meta') }</div>
+            <div style={{ marginTop: 8, fontSize: 13 }}>{ json_content ? '[JSON present]' : __('No JSON set', 'site-meta') }</div>
           </div>
         );
       case 'image':
@@ -144,9 +143,9 @@ export function FieldEditor({ field, onChange, onSave, onDelete, saving }) {
         </CardBody>
       </Card>
 
-      <JsonListModal
+      <JsonModal
         isOpen={modal.open}
-        onClose={() => setModal({ open: false, mode: null })}
+        onClose={() => setModal({ open: false, })}
         initialValue={modal.initial}
         mode={modal.mode}
         onSave={onModalSave}

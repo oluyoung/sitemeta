@@ -1,12 +1,12 @@
 import { Fragment } from "@wordpress/element";
 import {
-  // Modal,
   Button,
-  TextareaControl,
   Notice,
 } from "@wordpress/components";
 import { __ } from "@wordpress/i18n";
 import Modal from "react-modal";
+import JSONEditor from "jsoneditor";
+import "jsoneditor/dist/jsoneditor.css";
 
 const customStyles = {
   content: {
@@ -16,49 +16,50 @@ const customStyles = {
     bottom: "auto",
     marginRight: "-50%",
     transform: "translate(-50%, -50%)",
+    height: 'calc(100vh - 45vh)',
   },
 };
 
 Modal.setAppElement("#site-meta-admin-app");
 
-export function JsonListModal({
+export function JsonModal({
   isOpen,
   onClose,
   initialValue,
   onSave,
-  mode = "json",
 }) {
-  const valueStr =
-    typeof initialValue === "string"
-      ? initialValue
-      : JSON.stringify(initialValue ?? (mode === "list" ? [] : {}), null, 2);
+  const divRef = wp.element.useRef(null);
+  const editorRef = wp.element.useRef(null);
+  const valueStr = wp.element.useMemo(() => {
+    return typeof initialValue === "string"
+      ? JSON.parse(initialValue)
+      : initialValue ?? {};
+  }, [initialValue]);
 
-  const [value, setValue] = wp.element.useState(valueStr);
   const [error, setError] = wp.element.useState("");
 
   wp.element.useEffect(() => {
-    setValue(valueStr);
-    setError("");
+    if (isOpen) {
+      setError("");
+
+      if (!editorRef.current) {
+        editorRef.current = new JSONEditor(divRef.current, {
+          mode: "text",
+          search: true,
+          modes: ["code", "text", "tree", "view"], // allowed modes
+        });
+      }
+      editorRef.current.set(valueStr);
+    }
   }, [isOpen, valueStr]);
 
   const handleSave = () => {
-    if (mode === "json" || mode === "keyvalue") {
-      try {
-        const parsed = JSON.parse(value);
-        onSave(parsed);
-      } catch (e) {
-        setError(__("Invalid JSON. Please fix and try again.", "site-meta"));
-        return;
-      }
-    } else if (mode === "list") {
-      // list mode: one item per line -> array
-      const arr = value
-        .split("\n")
-        .map((s) => s.trim())
-        .filter(Boolean);
-      onSave(arr);
-    } else {
-      onSave(value);
+    try {
+      const parsed = editorRef.current.get();
+      onSave(parsed);
+    } catch (e) {
+      setError(__("Invalid JSON. Please fix and try again.", "site-meta"));
+      return;
     }
     onClose();
   };
@@ -67,18 +68,18 @@ export function JsonListModal({
     // references are now sync'd and can be accessed.
   }
 
-  if (!isOpen) return null;
+  // if (!isOpen) return null;
 
   return (
     <Modal
-      isOpen={isOpen}
+      isOpen
       onAfterOpen={afterOpenModal}
       onRequestClose={onClose}
-      style={customStyles}
-      contentLabel={ mode === 'json' ? __('Edit JSON', 'site-meta') : (mode === 'list' ? __('Edit List', 'site-meta') : __('Edit', 'site-meta')) }
+      style={{...customStyles, overlay: { ...customStyles.overlay, display: isOpen ? 'block' : 'none' },  content: { ...customStyles.content, display: isOpen ? 'block' : 'none' }}}
+      contentLabel={__('Edit JSON', 'site-meta')}
     >
-      <div style={{ minWidth: '640px' }}>
-        {error && (
+      <div style={{ minWidth: '640px', height: '100%' }}>
+        {error ? (
           <Notice
             status="error"
             isDismissible={true}
@@ -86,17 +87,8 @@ export function JsonListModal({
           >
             {error}
           </Notice>
-        )}
-        <TextareaControl
-          label={
-            mode === "list"
-              ? __("List items (one per line)", "site-meta")
-              : __("Value", "site-meta")
-          }
-          value={value}
-          onChange={setValue}
-          rows={12}
-        />
+        ) : null}
+        <div ref={divRef} id="jsoneditor" style={{ width: '100%', height: '90%' }} />
         <div
           style={{
             display: "flex",

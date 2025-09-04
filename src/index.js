@@ -60,8 +60,10 @@ export const App = () => {
         return Array.isArray(editing.content) && editing.content.length > 0;
       if (editing.type === "list")
         return Array.isArray(editing.content) && editing.content.length > 0;
-      if (editing.type === "json" || editing.type === "keyvalue")
-        return editing.content && Object.keys(editing.content).length > 0;
+      if (editing.type === "json" || editing.type === "keyvalue") {
+        const isValid = Array.isArray(editing.json_content) ? !!editing.json_content.length : !!Object.keys(editing.content).length;
+        return isValid;
+      }
       return false;
     })();
     if (!hasValue) {
@@ -107,8 +109,6 @@ export const App = () => {
       setSaving(false);
     }
   };
-
-  console.log({ editing })
 
   return (
     <VStack className="sitemeta-app" spacing="16">
