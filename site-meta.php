@@ -216,9 +216,9 @@ function site_meta_normalize_payload($id, $type, $content, $json_content)
 			break;
 		case 'gallery':
 			// expect array
-			if (!is_array($content)) $json_content = array();
+			if (!is_array($json_content)) $json_content = array();
 			// normalize gallery IDs to ints;
-			$json_content = array_values(array_filter(array_map('intval', $content)));
+			$json_content = array_values(array_filter(array_map('intval', $json_content)));
 			$json_content = wp_json_encode($json_content); // force assoc
 			break;
 		case 'json':
@@ -246,6 +246,7 @@ function site_meta_row_from_record($record)
 {
 	// Mirror scalar content to content; full canonical object to json_content
 	$content = null;
+	$json_content = null;
 
 	if (in_array($record['type'], array('text', 'image'), true)) {
 		$content = ($record['type'] === 'image') ? (string) intval($record['content']) : (string) $record['content'];
@@ -282,8 +283,8 @@ function site_meta_record_from_row($row)
 
 	// Coerce some types in case of legacy rows
 	if ($type === 'image') $cont = is_numeric($cont) ? intval($cont) : 0;
-	if ($type === 'gallery' || $type === 'list') {
-		if (!is_array($cont)) $cont = array();
+	if ($type === 'gallery') {
+		if (!is_array($json)) $json = array();
 	}
 
 	return array(
@@ -394,7 +395,6 @@ function site_meta_rest_get_items($request)
 	// Fetch all records from DB
 	$rows = $wpdb->get_results("SELECT * FROM $table_name", ARRAY_A);
 	$items = [];
-	// var_dump($rows);
 
 	foreach ($rows as $row) {
 		$content = null;
@@ -477,10 +477,10 @@ function site_meta_rest_create_field(WP_REST_Request $req)
 /** REST: Update */
 function site_meta_rest_update_field(WP_REST_Request $req)
 {
-	$id_route = strtolower(preg_replace('/[^a-zA-Z0-9_-]/', '', $req['id']));
+	$id_route = strtolower(preg_replace('/[^a-zA-Z0-9_-]/', '', $req['field_id']));
 
 	$params  = $req->get_json_params();
-	$id      = isset($params['id']) ? strtolower(preg_replace('/[^a-zA-Z0-9_-]/', '', $params['id'])) : '';
+	$id      = isset($params['field_id']) ? strtolower(preg_replace('/[^a-zA-Z0-9_-]/', '', $params['field_id'])) : '';
 	$type    = isset($params['type']) ? $params['type'] : '';
 	$content = isset($params['content']) ? $params['content'] : null;
 	$json_content = isset($params['json_content']) ? $params['json_content'] : null;
@@ -538,70 +538,6 @@ function site_meta_rest_update_field(WP_REST_Request $req)
 	return new WP_REST_Response($record, 200);
 }
 
-// function site_meta_rest_update_item($request)
-// {
-// 	global $wpdb;
-// 	$table_name = $wpdb->prefix . 'site_meta';
-
-// 	$params = $request->get_json_params();
-// 	$field_id = sanitize_text_field($params['field_id']);
-// 	$type     = sanitize_text_field($params['type']);
-// 	$content  = $params['content'];
-
-// 	// Separate storage depending on type
-// 	$content = null;
-// 	$json_content  = null;
-
-// 	switch ($type) {
-// 		case 'json':
-// 			if (!is_array($content) && !is_object($content)) {
-// 				return new WP_Error('invalid_json', 'Content must be valid JSON.', ['status' => 400]);
-// 			}
-// 			$json_content = wp_json_encode($content);
-// 			break;
-
-// 		case 'list':
-// 			if (!is_array($content)) {
-// 				return new WP_Error('invalid_list', 'Content must be an array for type "list".', ['status' => 400]);
-// 			}
-// 			$content = maybe_serialize($content);
-// 			break;
-
-// 		case 'image':
-// 		case 'gallery':
-// 			if (!is_string($content) && !is_array($content)) {
-// 				return new WP_Error('invalid_image', 'Content must be a string (url) or array (gallery).', ['status' => 400]);
-// 			}
-// 			$content = maybe_serialize($content);
-// 			break;
-
-// 		case 'text':
-// 		default:
-// 			if (!is_string($content)) {
-// 				return new WP_Error('invalid_text', 'Content must be a string.', ['status' => 400]);
-// 			}
-// 			$content = sanitize_textarea_field($content);
-// 			break;
-// 	}
-
-// 	$wpdb->replace(
-// 		$table_name,
-// 		[
-// 			'field_id'    => $field_id,
-// 			'content' => $content,
-// 			'json_content'  => $json_content,
-// 		],
-// 		['%s', '%s', '%s']
-// 	);
-
-// 	delete_transient('site_meta_all');
-// 	set_transient('site_meta_all', site_meta_get_all(), MONTH_IN_SECONDS);
-
-// 	return ['success' => true, 'field_id' => $field_id];
-// }
-
-/** REST: Delete */
-
 function site_meta_rest_delete_field(WP_REST_Request $req)
 {
 	$id = strtolower(preg_replace('/[^a-zA-Z0-9_-]/', '', $req['id']));
@@ -625,3 +561,155 @@ function site_meta_rest_delete_field(WP_REST_Request $req)
 
 	return new WP_REST_Response(array('deleted' => true, 'id' => $id), 200);
 }
+
+/**
+ * Fetch a site meta field by ID.
+ *
+ * @param string $id  The field_id to fetch.
+ * @param bool   $raw If true, return the raw DB row.
+ * @return array|null { 'id' => string, 'type' => string, 'value' => mixed }
+ */
+function site_meta_get($id, $raw = false)
+{
+	$cached = site_meta_cache_get_one($id);
+	if (false !== $cached) {
+		return $cached;
+	}
+
+	global $wpdb;
+	$table = site_meta_table();
+
+	// Expect schema with type/content/json_content
+	$row = $wpdb->get_row(
+		$wpdb->prepare("SELECT field_id, type, content, json_content FROM $table WHERE field_id = %s LIMIT 1", $id),
+		ARRAY_A
+	);
+	var_dump($row);
+
+	if (!$row) {
+		return null;
+	}
+
+	// Decode JSON or unserialize where needed
+	$value = null;
+	$json_value = null;
+	if ($row['json_content'] !== null) {
+		$json_value = json_decode($row['json_content'], true);
+	} else {
+		$maybe_unser = maybe_unserialize($row['content']);
+		$value       = $maybe_unser !== false ? $maybe_unser : $row['content'];
+	}
+
+	$result = [
+		'id'    => $row['field_id'],
+		'type'  => $row['type'],
+		'content' => $value,
+		'json_content' => $json_value,
+	];
+
+	return $raw ? $row : $result;
+}
+
+/**
+ * Template tag: echo or return a site meta value (type-aware).
+ *
+ * @param string $id   The field_id.
+ * @param array  $args Options: before, after, echo, format ('url'|'image'), attrs (for wp_get_attachment_image).
+ * @return mixed
+ */
+function site_meta($id, $args = [])
+{
+	$field = site_meta_get($id);
+	if (! $field) {
+		return null;
+	}
+	$defaults = [
+		'before' => '',
+		'after'  => '',
+		'echo'   => true,
+		'format' => 'url', // or 'image' for image/gallery
+		'attrs'  => [],    // extra attributes for wp_get_attachment_image
+	];
+	$args = wp_parse_args($args, $defaults);
+
+	$output = '';
+	$value  = $field['content'];
+	$json_value  = $field['json_content'];
+
+	switch ($field['type']) {
+		case 'image':
+			if ($args['format'] === 'image') {
+				$output = wp_get_attachment_image(intval($value), 'full', false, $args['attrs']);
+			} else {
+				$output = wp_get_attachment_url(intval($value));
+			}
+			break;
+
+		case 'gallery':
+			$output = [];
+			foreach (json_decode($json_value) as $attachment_id) {
+				if ($args['format'] === 'image') {
+					$output[] = wp_get_attachment_image(intval($attachment_id), 'full', false, $args['attrs']);
+				} else {
+					$output[] = wp_get_attachment_url(intval($attachment_id));
+				}
+			}
+			break;
+
+		case 'json':
+			// Already decoded into assoc/array
+			$output = $json_value;
+			break;
+
+		case 'text':
+		default:
+			$output = $value;
+			break;
+	}
+
+	// Add before/after if string
+	if (is_string($output)) {
+		$output = $args['before'] . $output . $args['after'];
+	}
+
+	if ($args['echo']) {
+		if (is_string($output)) {
+			echo $output; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		} elseif (is_array($output)) {
+			// For debugging / default rendering of gallery/json
+			echo esc_html(wp_json_encode($output, JSON_PRETTY_PRINT));
+		}
+	} else {
+		return $output;
+	}
+}
+
+/**
+ * Shortcode handler: [site_meta id="logo" format="image"]
+ */
+function site_meta_shortcode($atts)
+{
+	$atts = shortcode_atts(
+		[
+			'id'     => '',
+			'before' => '',
+			'after'  => '',
+			'format' => 'url', // or "image"
+		],
+		$atts,
+		'site_meta'
+	);
+
+	if (empty($atts['id'])) {
+		return '';
+	}
+
+	return site_meta($atts['id'], [
+		'before' => $atts['before'],
+		'after'  => $atts['after'],
+		'echo'   => false,
+		'format' => $atts['format'],
+	]);
+}
+
+add_shortcode('site_meta', 'site_meta_shortcode');

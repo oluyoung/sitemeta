@@ -23,8 +23,8 @@ export function FieldEditor({ field, onChange, onSave, onDelete, saving }) {
   // basic validation: id and content required before save
   const isContentEmpty = () => {
     if (type === 'text' || type === 'image') return !content || (typeof content === 'string' && content.trim() === '');
-    if (type === 'json') return !json_content || (Object.keys(json_content || {}).length === 0);
-    if (type === 'gallery') return !Array.isArray(content) || content.length === 0;
+    if (type === 'json') return !json_content || (Array.isArray(json_content) && !json_content.length) || Object.keys(json_content || {}).length === 0;
+    if (type === 'gallery') return !Array.isArray(json_content) || !json_content.length;
     return false;
   };
 
@@ -45,7 +45,7 @@ export function FieldEditor({ field, onChange, onSave, onDelete, saving }) {
       if (!selection) return;
       if (multiple) {
         // store as array of attachment ids
-        onChange(prev => ({ ...prev, content: selection.map((s) => s.id) }));
+        onChange(prev => ({ ...prev, json_content: selection.map((s) => s.id) }));
       } else {
         onChange(prev => ({ ...prev, content: selection[0].id }));
       }
@@ -83,13 +83,15 @@ export function FieldEditor({ field, onChange, onSave, onDelete, saving }) {
         return (
           <div>
             <Button variant='secondary' onClick={() => onPickImage(true)}>{ __('Select Gallery', 'site-meta') }</Button>
-            <div style={{ marginTop: 8, fontSize: 13 }}>{ Array.isArray(content) ? `${content.length} images` : __('No images', 'site-meta') }</div>
+            <div style={{ marginTop: 8, fontSize: 13 }}>{ Array.isArray(json_content) ? `${json_content.length} images` : __('No images', 'site-meta') }</div>
           </div>
         );
       default:
         return null;
     }
   }, [type, content, field, onChange]);
+
+  console.log({ json_content})
 
   return (
     <>
@@ -135,7 +137,7 @@ export function FieldEditor({ field, onChange, onSave, onDelete, saving }) {
               label={ __('Type', 'site-meta') }
               value={ type }
               options={ TYPES }
-              onChange={ (val) => onChange(prev => ({ ...prev, type: val, content: (val === 'list' ? [] : (val === 'gallery' ? [] : undefined)) })) }
+              onChange={ (val) => onChange(prev => ({ ...prev, type: val, content: undefined, json_content: undefined })) }
             />
           </div>
 

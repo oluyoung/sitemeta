@@ -21,7 +21,7 @@ export function FieldsTable({ items = [], onEdit }) {
                 case 'text': preview = (it.content ?? '').toString().slice(0, 60); break;
                 case 'json': preview = '[JSON]'; break;
                 case 'image': preview = it.content ? `ID ${it.content}` : ''; break;
-                case 'gallery': preview = Array.isArray(it.content) ? `${it.content.length} images` : '[gallery]'; break;
+                case 'gallery': preview = Array.isArray(it.json_content) ? `${it.json_content.length} images` : '[gallery]'; break;
               }
               return (
                 <tr key={ it.field_id }>

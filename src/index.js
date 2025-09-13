@@ -43,7 +43,7 @@ export const App = () => {
     : fields;
 
   const startNew = () => {
-    setEditing({ field_id: "", type: "text", content: "" });
+    setEditing({ field_id: "", type: "text", content: "", json_content: null });
   };
 
   const onSave = async () => {
@@ -57,7 +57,7 @@ export const App = () => {
         return !!(editing.content && editing.content.toString().trim());
       if (editing.type === "image") return !!editing.content;
       if (editing.type === "gallery")
-        return Array.isArray(editing.content) && editing.content.length > 0;
+        return Array.isArray(editing.json_content) && editing.json_content.length > 0;
       if (editing.type === "list")
         return Array.isArray(editing.content) && editing.content.length > 0;
       if (editing.type === "json" || editing.type === "keyvalue") {
