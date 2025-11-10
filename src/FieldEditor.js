@@ -41,10 +41,13 @@ export function FieldEditor({ field, onChange, onSave, onDelete, saving }) {
 
   const onPickImage = async (multiple = false) => {
     try {
-      const selection = await openMediaLibrary({ multiple, title: multiple ? 'Select gallery' : 'Select image' });
+      const selection = await openMediaLibrary({
+        multiple,
+        title: multiple ? 'Select gallery' : 'Select image',
+        selectedIds: multiple ?  json_content : content
+      });
       if (!selection) return;
       if (multiple) {
-        // store as array of attachment ids
         onChange(prev => ({ ...prev, json_content: selection.map((s) => s.id) }));
       } else {
         onChange(prev => ({ ...prev, content: selection[0].id }));
@@ -90,8 +93,6 @@ export function FieldEditor({ field, onChange, onSave, onDelete, saving }) {
         return null;
     }
   }, [type, content, field, onChange]);
-
-  console.log({ json_content})
 
   return (
     <>

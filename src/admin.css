@@ -32,3 +32,10 @@
 .sitemeta-actions {
   margin-top: 12px;
 }
+
+.edit-pannel-btn {
+  display: flex;
+  align-items: center;
+  background-color: transparent;
+  border: 0;
+}

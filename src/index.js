@@ -1,8 +1,9 @@
 import React from "react";
 import domReady from "@wordpress/dom-ready";
 import apiFetch from "@wordpress/api-fetch";
-import { useEffect, useMemo, useState, createRoot } from "@wordpress/element";
+import { useState, createRoot } from "@wordpress/element";
 import {
+  Panel,
   Button,
   Flex,
   FlexItem,
@@ -61,7 +62,7 @@ export const App = () => {
       if (editing.type === "list")
         return Array.isArray(editing.content) && editing.content.length > 0;
       if (editing.type === "json" || editing.type === "keyvalue") {
-        const isValid = Array.isArray(editing.json_content) ? !!editing.json_content.length : !!Object.keys(editing.content).length;
+        const isValid = Array.isArray(editing.json_content) ? !!editing.json_content.length : !!Object.keys(editing.json_content).length;
         return isValid;
       }
       return false;
@@ -145,15 +146,17 @@ export const App = () => {
       )}
 
       {editing && (
-        <PanelBody title={__("Add Field", "site-meta")} initialOpen>
-          <FieldEditor
-            field={editing}
-            onChange={setEditing}
-            onSave={onSave}
-            onDelete={onDelete}
-            saving={saving}
-          />
-        </PanelBody>
+        <Panel header="My panel">
+          <PanelBody title={__("Add Field", "site-meta")} initialOpen buttonProps={{ className: '' }}>
+            <FieldEditor
+              field={editing}
+              onChange={setEditing}
+              onSave={onSave}
+              onDelete={onDelete}
+              saving={saving}
+            />
+          </PanelBody>
+        </Panel>
       )}
     </VStack>
   );
