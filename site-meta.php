@@ -569,7 +569,7 @@ function site_meta_rest_delete_field(WP_REST_Request $req)
  * @param bool   $raw If true, return the raw DB row.
  * @return array|null { 'id' => string, 'type' => string, 'value' => mixed }
  */
-function site_meta_get($id, $raw = false)
+function site_meta_get($id)
 {
 	$cached = site_meta_cache_get_one($id);
 	if (false !== $cached) {
@@ -584,7 +584,6 @@ function site_meta_get($id, $raw = false)
 		$wpdb->prepare("SELECT field_id, type, content, json_content FROM $table WHERE field_id = %s LIMIT 1", $id),
 		ARRAY_A
 	);
-	var_dump($row);
 
 	if (!$row) {
 		return null;
@@ -594,20 +593,20 @@ function site_meta_get($id, $raw = false)
 	$value = null;
 	$json_value = null;
 	if ($row['json_content'] !== null) {
-		$json_value = json_decode($row['json_content'], true);
+		$json_value = $row['json_content'];
 	} else {
 		$maybe_unser = maybe_unserialize($row['content']);
 		$value       = $maybe_unser !== false ? $maybe_unser : $row['content'];
 	}
 
-	$result = [
+	$result = array(
 		'id'    => $row['field_id'],
 		'type'  => $row['type'],
 		'content' => $value,
 		'json_content' => $json_value,
-	];
+	);
 
-	return $raw ? $row : $result;
+	return $result;
 }
 
 function site_transient_find_or_create($id, $anonFunc = null, $value = null) {
@@ -620,6 +619,7 @@ function site_transient_find_or_create($id, $anonFunc = null, $value = null) {
 	if ($value) $record = $value;
 
 	if ($record) {
+		site_meta_cache_invalidate($id);
 		site_meta_cache_set_one($id, $record);
 		return $record;
 	}
@@ -635,13 +635,14 @@ function site_transient_find_or_create($id, $anonFunc = null, $value = null) {
 function site_meta($id, $args = [])
 {
 	$field = site_meta_get($id);
-	if (! $field) {
+	if (!$field) {
 		return null;
 	}
+
 	$defaults = [
 		'before' => '',
 		'after'  => '',
-		'echo'   => true,
+		'echo'   => false,
 		'format' => 'url', // or 'image' for image/gallery
 		'attrs'  => [],    // extra attributes for wp_get_attachment_image
 	];
@@ -673,7 +674,7 @@ function site_meta($id, $args = [])
 
 		case 'json':
 			// Already decoded into assoc/array
-			$output = $json_value;
+			$output = json_decode($json_value);
 			break;
 
 		case 'text':
