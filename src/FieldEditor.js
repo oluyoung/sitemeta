@@ -146,13 +146,13 @@ export function FieldEditor({ field, onChange, onSave, onDelete, saving }) {
         </CardBody>
       </Card>
 
-      <JsonModal
+      {modal.open ? (<JsonModal
         isOpen={modal.open}
         onClose={() => setModal({ open: false, })}
         initialValue={modal.initial}
         mode={modal.mode}
         onSave={onModalSave}
-      />
+      />) : null}
     </>
   );
 }

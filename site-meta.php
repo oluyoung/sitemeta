@@ -610,6 +610,21 @@ function site_meta_get($id, $raw = false)
 	return $raw ? $row : $result;
 }
 
+function site_transient_find_or_create($id, $anonFunc = null, $value = null) {
+	$cached = site_meta_cache_get_one($id);
+	if (false !== $cached) {
+		return $cached;
+	}
+
+	if ($anonFunc) $record = $anonFunc();
+	if ($value) $record = $value;
+
+	if ($record) {
+		site_meta_cache_set_one($id, $record);
+		return $record;
+	}
+}
+
 /**
  * Template tag: echo or return a site meta value (type-aware).
  *
