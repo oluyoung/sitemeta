@@ -7,9 +7,8 @@ export function openMediaLibrary({ multiple = false, title = 'Select image(s)', 
       return;
     }
 
-    frame = window.wp.media({
+    frame = wp.media({
       title,
-      library: { type: 'image' },
       button: { text: 'Use selected' },
       multiple,
     });

@@ -15,7 +15,7 @@ import { TYPES } from './utils/constants';
 import { JsonModal } from './JSONModal';
 import { openMediaLibrary } from './utils/mediapicker';
 
-export function FieldEditor({ field, onChange, onSave, onDelete, saving }) {
+export function FieldEditor({ field, onChange, onSave, onDelete, saving, onCancel, isNew }) {
   const [modal, setModal] = useState({ open: false, initial: null });
 
   const { field_id = '', type = 'text', content, json_content } = field || {};
@@ -104,22 +104,24 @@ export function FieldEditor({ field, onChange, onSave, onDelete, saving }) {
             </FlexItem>
             <FlexItem>
               <Button
-                isPrimary
+                variant="primary"
                 onClick={ onSave }
                 disabled={ saving || !canSave }
               >
                 { saving ? __('Saving…', 'site-meta') : __('Save', 'site-meta') }
               </Button>
-              { field_id && (
+              {!isNew && (
                 <Button
                   isDestructive
                   onClick={ onDelete }
                   disabled={ saving }
-                  style={{ marginLeft: 8 }}
                 >
                   { __('Delete', 'site-meta') }
                 </Button>
               ) }
+              <Button onClick={onCancel} variant="secondary">
+                { __('Cancel', 'site-meta') }
+              </Button>
             </FlexItem>
           </Flex>
         </CardHeader>

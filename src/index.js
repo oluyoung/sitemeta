@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import domReady from "@wordpress/dom-ready";
 import apiFetch from "@wordpress/api-fetch";
 import { useState, createRoot } from "@wordpress/element";
@@ -35,6 +35,8 @@ export const App = () => {
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
 
+  const existingField = useMemo(() => fields.find((f) => f.field_id === editing?.field_id), [fields, editing]);
+
   const filtered = query
     ? fields.filter(
         (it) =>
@@ -67,6 +69,7 @@ export const App = () => {
       }
       return false;
     })();
+
     if (!hasValue) {
       setError(
         __(
@@ -79,11 +82,11 @@ export const App = () => {
 
     setSaving(true);
     setError("");
+
     try {
-      const existing = fields.find((f) => f.field_id === editing.field_id);
       const payload = editing;
       let saved;
-      if (existing) {
+      if (existingField) {
         saved = await updateField(editing.field_id, payload);
       } else {
         saved = await createField(payload);
@@ -98,7 +101,13 @@ export const App = () => {
   };
 
   const onDelete = async () => {
-    if (!editing?.field_id) return;
+    if (!editing?.field_id || !existingField) return;
+
+    const res = confirm('Are you sure you want to delete this field?');
+
+    console.log({ res })
+    if (!res) return;
+
     setSaving(true);
     try {
       await deleteField(editing.field_id);
@@ -109,6 +118,10 @@ export const App = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const onCancel = () => {
+    setEditing(null);
   };
 
   return (
@@ -124,7 +137,7 @@ export const App = () => {
               value={query}
               onChange={setQuery}
             />
-            <Button isPrimary onClick={startNew}>
+            <Button variant="primary" onClick={startNew}>
               {__("Add Field", "site-meta")}
             </Button>
           </HStack>
@@ -146,14 +159,20 @@ export const App = () => {
       )}
 
       {editing && (
-        <Panel header="My panel">
-          <PanelBody title={__("Add Field", "site-meta")} initialOpen buttonProps={{ className: '' }}>
+        <Panel header="Field">
+          <PanelBody
+            initialOpen
+            title={__("Add Field", "site-meta")}
+            buttonProps={{ className: '' }}
+          >
             <FieldEditor
               field={editing}
               onChange={setEditing}
               onSave={onSave}
               onDelete={onDelete}
+              onCancel={onCancel}
               saving={saving}
+              isNew={!existingField}
             />
           </PanelBody>
         </Panel>
